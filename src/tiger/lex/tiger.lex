@@ -115,9 +115,10 @@ esc       (\\n|\\t|\\\\|\\\"|(\\\^{letter})|(\\{digit}{3}))
 <INITIAL>"/*"    {adjust(); comment_level_=1; begin(StartCondition__::COMMENT);}
 <COMMENT>"/*"    {adjust(); comment_level_++; }
 <COMMENT>"*/"    {adjust(); comment_level_--; if(comment_level_<0) errormsg_->Error(errormsg_->tok_pos_, "nested comment error");if(comment_level_==0) begin(StartCondition__::INITIAL); }
+<COMMENT>"\n"    {adjust(); errormsg_->Newline();}
 <COMMENT>.       {adjust();}
 <STR>{ignore}    {adjustStr();}
-<STR>\"          {adjust(); begin(StartCondition__::INITIAL); setMatched(string_buf_);return Parser::STRING;}
+<STR>\"          {adjustStr(); begin(StartCondition__::INITIAL); setMatched(string_buf_); return Parser::STRING;}
 <STR>\\n         {adjustStr(); string_buf_+='\n';}
 <STR>\\t         {adjustStr(); string_buf_+='\t';}
 <STR>\\\\        {adjustStr(); string_buf_+='\\';}
@@ -135,7 +136,6 @@ esc       (\\n|\\t|\\\\|\\\"|(\\\^{letter})|(\\{digit}{3}))
   * space, tabs and LF
   */
 <INITIAL>[ \t]+  {adjust();}
-<INITIAL>\n      {adjust(); errormsg_->Newline();}
-
+<INITIAL>"\n"    {adjust(); errormsg_->Newline();}
  /* illegal input */
 <*>.             {adjust(); errormsg_->Error(errormsg_->tok_pos_, "illegal token");}
