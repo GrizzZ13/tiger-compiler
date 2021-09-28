@@ -117,7 +117,7 @@ esc       (\\n|\\t|\\\\|\\\"|(\\\^{letter})|(\\{digit}{3}))
 <COMMENT>"*/"    {adjust(); comment_level_--; if(comment_level_<0) errormsg_->Error(errormsg_->tok_pos_, "nested comment error");if(comment_level_==0) begin(StartCondition__::INITIAL); }
 <COMMENT>.       {adjust();}
 <STR>{ignore}    {adjustStr();}
-<STR>\"          {adjustStr(); begin(StartCondition__::INITIAL); setMatched(string_buf_);return Parser::STRING;}
+<STR>\"          {adjust(); begin(StartCondition__::INITIAL); setMatched(string_buf_);return Parser::STRING;}
 <STR>\\n         {adjustStr(); string_buf_+='\n';}
 <STR>\\t         {adjustStr(); string_buf_+='\t';}
 <STR>\\\\        {adjustStr(); string_buf_+='\\';}
