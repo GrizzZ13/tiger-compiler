@@ -11,7 +11,7 @@ letter    [A-Za-z]
 underline \_
 id        {letter}({letter}|{digit}|{underline})*
 integer   {digit}+
-ignore    (\\f)([ \f\n\r\t\v]+)(f\\)
+ignore    \\([ \f\n\r\t\v]+)\\
 esc       (\\n|\\t|\\\\|\\\"|(\\\^{letter})|(\\{digit}{3}))
 
  /* TODO: Put your lab2 code here */
@@ -112,16 +112,21 @@ esc       (\\n|\\t|\\\\|\\\"|(\\\^{letter})|(\\{digit}{3}))
 <INITIAL>\&      {adjust(); return Parser::AND;}
 <INITIAL>\|      {adjust(); return Parser::OR;}
 <INITIAL>\:\=    {adjust(); return Parser::ASSIGN;}
-<INITIAL>"/*"    {adjust(); comment_level_=1; begin(StartCondition_::COMMENT);}
+<INITIAL>"/*"    {adjust(); comment_level_=1; begin(StartCondition__::COMMENT);}
 <COMMENT>"/*"    {adjust(); comment_level_++; }
-<COMMENT>"*/"    {adjust(); comment_level_--; if(comment_level_<0) errormsg_->Error(errormsg_->tok_pos_, "nested comment error");if(comment_level_==0) begin(StartCondition_::INITIAL); }
+<COMMENT>"*/"    {adjust(); comment_level_--; if(comment_level_<0) errormsg_->Error(errormsg_->tok_pos_, "nested comment error");if(comment_level_==0) begin(StartCondition__::INITIAL); }
 <COMMENT>.       {adjust();}
-<STR>{ignore}    {adjust();}
-<STR>\"          {adjust(); begin(StartCondition_::INITIAL); return Parser:STRING;}
-<STR>{esc}       {adjust();}
-<STR>\\          {adjust(); errormsg_->Error(errormsg_->tok_pos_, "illegal escape character");}
-<STR>.           {adjust();}
-<INITIAL>\"      {adjust(); begin(StartCondition_::STR);}
+<STR>{ignore}    {adjustStr();}
+<STR>\"          {adjustStr(); begin(StartCondition__::INITIAL); setMatched(string_buf_);}
+<STR>\\n         {adjustStr(); string_buf_+='\n';}
+<STR>\\t         {adjustStr(); string_buf_+='\t';}
+<STR>\\\\        {adjustStr(); string_buf_+='\\';}
+<STR>\\\"        {adjustStr(); string_buf_+='\"';}
+<STR>\\[0-9]{3}  {adjustStr(); string_tmp_=matched(); string_tmp_=string_tmp_.substr(1,3); string_buf_+=((char)(atoi(string_tmp_.c_str())));}
+<STR>\\\^[A-Z]   {adjustStr(); string_tmp_=matched(); string_buf_+=(string_tmp_[2]-64);}
+<STR>\\          {adjustStr(); errormsg_->Error(errormsg_->tok_pos_, "illegal escape character");}
+<STR>.           {adjustStr(); string_buf_+=matched();}
+<INITIAL>\"      {adjust(); begin(StartCondition__::STR); string_buf_="";}
 <INITIAL>{integer}   {adjust(); return Parser::INT;}
 <INITIAL>{id}    {adjust(); return Parser::ID;}
 
