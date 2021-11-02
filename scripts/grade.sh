@@ -113,7 +113,6 @@ test_lab4() {
 
   build test_semant
   for testcase in "$testcase_dir"/*.tig; do
-    echo "${testcase}"
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
 
