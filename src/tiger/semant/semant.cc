@@ -1,10 +1,14 @@
 #include "tiger/absyn/absyn.h"
 #include "tiger/semant/semant.h"
 #include <iostream>
+#include <map>
 
 namespace absyn {
 
 static int breakHierachy = 0;
+static std::map<std::string, int> varCount;
+static std::map<std::string, int> typCount;
+static std::map<std::string, int> funCount;
 
 void AbsynTree::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                            err::ErrorMsg *errormsg) const {
@@ -343,6 +347,12 @@ type::Ty *LetExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   #endif
   venv->BeginScope();
   tenv->BeginScope();
+  std::map<std::string, int> varCountTmp = varCount;
+  std::map<std::string, int> typCountTmp = typCount;
+  std::map<std::string, int> funCountTmp = funCount;
+  varCount.clear();
+  typCount.clear();
+  funCount.clear();
   std::list<Dec*> decList = decs_->GetList();
   for(const auto &dec : decList){
     dec->SemAnalyze(venv, tenv, labelcount, errormsg);
@@ -356,6 +366,9 @@ type::Ty *LetExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   #endif
   venv->EndScope();
   tenv->BeginScope();
+  varCount = varCountTmp;
+  typCount = typCountTmp;
+  funCount = funCountTmp;
   return type;
 }
 
@@ -399,14 +412,16 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   std::list<FunDec*> funDecList  = functions_->GetList();
   // first traversal
   for(const auto &funDec : funDecList){
-    #ifdef CALLEXP
-    std::cout << "fundec : " << funDec->name_->Name() << std::endl;
-    #endif
-    if(venv->Look(funDec->name_)){
+    funCount[funDec->name_->Name()]++;
+  }
+  for(const auto &pair_ : funCount){
+    if(pair_.second>1){
       errormsg->Error(pos_, "two functions have the same name");
       return;
     }
-    else if(funDec->result_!=nullptr){
+  }
+  for(const auto &funDec : funDecList){
+    if(funDec->result_!=nullptr){
       type::Ty *result_ty = tenv->Look(funDec->result_);
       if(result_ty==nullptr){
         errormsg->Error(pos_, "return value type undefined");
@@ -463,13 +478,12 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
                         err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
-  #ifdef DEBUG
-  errormsg->Error(pos_, "var dec starts");
-  #endif
+  varCount[var_->Name()]++;
+  if(varCount[var_->Name()]>1){
+    errormsg->Error(pos_, "two variables have the same name");
+    return;
+  }
   type::Ty *init_ty = init_->SemAnalyze(venv, tenv, labelcount, errormsg);
-  #ifdef DEBUG
-  errormsg->Error(pos_, "init ty checked");
-  #endif
   if(typ_==nullptr){
     if(typeid(*(init_ty->ActualTy()))==typeid(type::NilTy)){
       errormsg->Error(init_->pos_, "init should not be nil without type specified");
@@ -509,12 +523,16 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   const std::list<NameAndTy*> nameAndTyList = types_->GetList();
   // first traversal
   for(const auto &nameAndTy : nameAndTyList){
-    if(tenv->Look(nameAndTy->name_)!=nullptr){
+    typCount[nameAndTy->name_->Name()]++;
+  }
+  for(const auto &pair_ : typCount){
+    if(pair_.second>1){
       errormsg->Error(pos_, "two types have the same name");
+      return;
     }
-    else{
-      tenv->Enter(nameAndTy->name_, new type::NameTy(nameAndTy->name_, nullptr));
-    }
+  }
+  for(const auto &nameAndTy : nameAndTyList){
+    tenv->Enter(nameAndTy->name_, new type::NameTy(nameAndTy->name_, nullptr));
   }
   // second traversal
   for(const auto &nameAndTy : nameAndTyList){
