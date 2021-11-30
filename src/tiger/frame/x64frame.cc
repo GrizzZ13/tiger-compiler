@@ -25,4 +25,44 @@ class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
 };
 /* TODO: Put your lab5 code here */
+<<<<<<< HEAD
+=======
+
+temp::TempList *X64RegManager::Registers() {
+  return nullptr;
+}
+
+temp::TempList *X64RegManager::ArgRegs() {
+  return nullptr;
+}
+
+temp::TempList *X64RegManager::CallerSaves() {
+  return nullptr;
+}
+
+temp::TempList *X64RegManager::CalleeSaves() {
+  return nullptr;
+}
+
+temp::TempList *X64RegManager::ReturnSink() {
+  return nullptr;
+}
+
+int X64RegManager::WordSize() {
+  return 0;
+}
+
+temp::Temp *X64RegManager::FramePointer() {
+  return nullptr;
+}
+
+temp::Temp *X64RegManager::StackPointer() {
+  return nullptr;
+}
+
+temp::Temp *X64RegManager::ReturnValue() {
+  return nullptr;
+}
+
+>>>>>>> lab5-part1
 } // namespace frame
