@@ -98,9 +98,9 @@ type::Ty *StringExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                               int labelcount, err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
-  #ifdef CALLEXP
-  errormsg->Error(pos_, "call exp %s", func_->Name().data());
-  #endif
+  // #ifdef CALLEXP
+  // errormsg->Error(pos_, "call exp %s", func_->Name().data());
+  // #endif
   env::EnvEntry *entry = venv->Look(func_);
   if(entry==nullptr || typeid(*entry)!=typeid(env::FunEntry)){
     errormsg->Error(pos_, "undefined function %s", func_->Name().data());
