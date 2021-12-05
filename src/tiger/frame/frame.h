@@ -63,6 +63,8 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  [[nodiscard]] virtual temp::Temp *GetRDX() = 0;
+
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;

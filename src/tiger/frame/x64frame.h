@@ -180,6 +180,8 @@ public:
   [[nodiscard]] temp::Temp *StackPointer();
 
   [[nodiscard]] temp::Temp *ReturnValue();
+
+  [[nodiscard]] temp::Temp *GetRDX();
 };
 
 } // namespace frame

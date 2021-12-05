@@ -145,4 +145,8 @@ temp::Temp *X64RegManager::ReturnValue() {
   return rax;
 }
 
+temp::Temp *X64RegManager::GetRDX() {
+  return rdx;
+}
+
 } // namespace frame

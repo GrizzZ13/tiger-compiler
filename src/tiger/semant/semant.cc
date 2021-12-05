@@ -397,7 +397,7 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   #ifdef DEBUG
   errormsg->Error(pos_, "Array exp ends");
   #endif
-  return new type::ArrayTy(type);
+  return type->ActualTy();
 }
 
 type::Ty *VoidExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
