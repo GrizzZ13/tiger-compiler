@@ -99,6 +99,8 @@ public:
   virtual temp::Temp* FramePointer() const = 0;
   const std::list<frame::Access*> &GetFormals() {return formals_;}
   virtual tree::Stm* procEntryExit1(tree::Stm *stm) = 0;
+  virtual assem::Proc* ProcEntryExit3(assem::InstrList *il) = 0;
+  virtual std::string GetLabel() = 0;
 };
 
 /**

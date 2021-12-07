@@ -41,6 +41,8 @@ public:
   inline void Log(T, Targs...) noexcept {}
 };
 
+// #define TigerLog Logger(stdout).Log
+
 #ifdef NDEBUG
 #define TigerLog NullLogger().Log
 #else

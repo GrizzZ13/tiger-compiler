@@ -145,7 +145,9 @@ void ProgTr::Translate() {
   main_level_ = std::make_unique<Level>(frame, nullptr);
   FillBaseTEnv();
   FillBaseVEnv();
-  absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(), mainLabel, errormsg_.get());
+  tr::ExpAndTy *expAndTy = absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(), mainLabel, errormsg_.get());
+  tree::Stm *stm = expAndTy->exp_->UnNx();
+  frags->PushBack(new frame::ProcFrag(stm, frame));
 }
 
 tr::Exp* nilExp() {
@@ -294,11 +296,13 @@ tr::Exp* recordExp(const std::vector<tr::Exp*> &trExpList) {
     stm = new tree::SeqStm(
       stm,
       new tree::MoveStm(
-        new tree::BinopExp(
-          tree::BinOp::PLUS_OP,
-          new tree::TempExp(ptr),
-          new tree::ConstExp(i * reg_manager->WordSize())
-        ),
+        new tree::MemExp(
+          new tree::BinopExp(
+            tree::BinOp::PLUS_OP,
+            new tree::TempExp(ptr),
+            new tree::ConstExp(i * reg_manager->WordSize())
+          )
+        ) ,
         trExpList[i]->UnEx()
       )
     );

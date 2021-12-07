@@ -36,6 +36,8 @@ public:
   static Frame* NewFrame(temp::Label *name, std::list<bool>& escapes);
   temp::Temp* FramePointer() const override;
   tree::Stm* procEntryExit1(tree::Stm *stm) override;
+  assem::Proc* ProcEntryExit3(assem::InstrList *il) override;
+  std::string GetLabel() override;
 };
 
 class X64RegManager : public RegManager {
@@ -81,8 +83,6 @@ public:
   temp::TempList* calleeSaves;
   temp::TempList* returnSink;
 
-  temp::Map *x86Reg;
-
 public:
   X64RegManager() {
     rsp_str = "%rsp";
@@ -100,8 +100,7 @@ public:
     r13_str = "%r13";
     r14_str = "%r14";
     r15_str = "%r15";
-    rbx_str = "%rbx";  
-    x86Reg = temp::Map::Empty();
+    rbx_str = "%rbx";
     rsp = temp::TempFactory::NewTemp();
     rbp = temp::TempFactory::NewTemp();
     rax = temp::TempFactory::NewTemp();
@@ -118,22 +117,22 @@ public:
     r14 = temp::TempFactory::NewTemp();
     r15 = temp::TempFactory::NewTemp();
     rbx = temp::TempFactory::NewTemp();
-    x86Reg->Enter(rsp, &rsp_str);
-    x86Reg->Enter(rbp, &rbp_str);
-    x86Reg->Enter(rax, &rax_str);
-    x86Reg->Enter(rdi, &rdi_str);
-    x86Reg->Enter(rsi, &rsi_str);
-    x86Reg->Enter(rdx, &rdx_str);
-    x86Reg->Enter(rcx, &rcx_str);
-    x86Reg->Enter(r8,  &r8_str);
-    x86Reg->Enter(r9,  &r9_str);
-    x86Reg->Enter(r10, &r10_str);
-    x86Reg->Enter(r11, &r11_str);
-    x86Reg->Enter(r12, &r12_str);
-    x86Reg->Enter(r13, &r13_str);
-    x86Reg->Enter(r14, &r14_str);
-    x86Reg->Enter(r15, &r15_str);
-    x86Reg->Enter(rbx, &rbx_str);
+    temp::Map::Name()->Enter(rsp, &rsp_str);
+    temp::Map::Name()->Enter(rbp, &rbp_str);
+    temp::Map::Name()->Enter(rax, &rax_str);
+    temp::Map::Name()->Enter(rdi, &rdi_str);
+    temp::Map::Name()->Enter(rsi, &rsi_str);
+    temp::Map::Name()->Enter(rdx, &rdx_str);
+    temp::Map::Name()->Enter(rcx, &rcx_str);
+    temp::Map::Name()->Enter(r8,  &r8_str);
+    temp::Map::Name()->Enter(r9,  &r9_str);
+    temp::Map::Name()->Enter(r10, &r10_str);
+    temp::Map::Name()->Enter(r11, &r11_str);
+    temp::Map::Name()->Enter(r12, &r12_str);
+    temp::Map::Name()->Enter(r13, &r13_str);
+    temp::Map::Name()->Enter(r14, &r14_str);
+    temp::Map::Name()->Enter(r15, &r15_str);
+    temp::Map::Name()->Enter(rbx, &rbx_str);
   }
 
   /**

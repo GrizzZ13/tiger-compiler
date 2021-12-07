@@ -24,7 +24,6 @@ X64Frame::~X64Frame(){}
 Frame* X64Frame::NewFrame(temp::Label *name, std::list<bool>& escapes) {
   Frame *frame = new X64Frame();
   frame->name_ = name;
-  frame->viewShift_->Linear(new tree::LabelStm(name));
   frame->offset_ = 0;
   for(auto& escape : escapes) {
     frame::Access *access;
@@ -37,8 +36,10 @@ Frame* X64Frame::NewFrame(temp::Label *name, std::list<bool>& escapes) {
     }
     frame->formals_.push_back(access);
   }
+
   std::list<temp::Temp*> argRegs = reg_manager->ArgRegs()->GetList();
   int i = 0;
+  // view shift : transfer argments to register or memory
   for(auto &access : frame->formals_){
     tree::Stm *stm;
     tree::Exp *dstExp;
@@ -55,7 +56,7 @@ Frame* X64Frame::NewFrame(temp::Label *name, std::list<bool>& escapes) {
       stm = new tree::MoveStm(dstExp, new tree::TempExp(*(itr)));
     }
     else{
-      stm = new tree::MoveStm(dstExp, new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, new tree::TempExp(frame->FramePointer()), new tree::ConstExp((i + 1 - 6) * reg_manager->WordSize()))));
+      stm = new tree::MoveStm(dstExp, new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, new tree::TempExp(frame->FramePointer()), new tree::ConstExp((i -5) * reg_manager->WordSize()))));
     }
     i++;
     frame->viewShift_->Linear(stm);
@@ -72,6 +73,18 @@ tree::Stm* X64Frame::procEntryExit1(tree::Stm *body) {
   return result;
 }
 
+assem::Proc* X64Frame::ProcEntryExit3(assem::InstrList *instrList) {
+  std::string prologue = name_->Name() + ":\n";
+  prologue += ".set " + name_->Name() + "_framesize, " + std::to_string(-offset_) + "\n";
+  prologue += "subq $" + std::to_string(-offset_) + ", %rsp\n";
+  std::string epilogue = "addq $" + std::to_string(-offset_) + ", %rsp\nretq\n\n";
+  return new assem::Proc(prologue, instrList, epilogue);
+}
+
+std::string X64Frame::GetLabel() {
+  return name_->Name();
+}
+
 tree::Exp *InRegAccess::ToExp(tree::Exp *framePtr) const {
   return new tree::TempExp(reg);
 }
@@ -83,8 +96,8 @@ tree::Exp *InFrameAccess::ToExp(tree::Exp *framePtr) const {
 Access* X64Frame::allocLocal(bool escape) {
   Access *access;
   if(escape){
-    access = new InFrameAccess(offset_);
     offset_ -= reg_manager->WordSize();
+    access = new InFrameAccess(offset_);
   }
   else{
     access = new InRegAccess(temp::TempFactory::NewTemp());
