@@ -145,9 +145,10 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
       temp::Temp *srcTemp = ((MemExp *)src_)->exp_->Munch(instr_list, fs);
       temp::Temp *dstTemp = memDst->exp_->Munch(instr_list, fs);
       temp::Temp *temp = temp::TempFactory::NewTemp();
-      instr_list.Append(new assem::MoveInstr("movq (`s0), `d0",
+      instr_list.Append(new assem::OperInstr("movq (`s0), `d0",
                                              new temp::TempList(temp),
-                                             new temp::TempList(srcTemp)));
+                                             new temp::TempList(srcTemp),
+                                             nullptr));
       instr_list.Append(new assem::OperInstr("movq `s0, (`s1)",
                                              nullptr,
                                              new temp::TempList({temp, dstTemp}),
@@ -165,8 +166,8 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::Temp *src = src_->Munch(instr_list, fs);
     if(src==reg_manager->FramePointer()){
       std::string leaq = "leaq " + std::string(fs.data()) + "(`s0), `d0";
-      instr_list.Append(new assem::MoveInstr(
-        leaq, new temp::TempList(dst), new temp::TempList(reg_manager->StackPointer())));
+      instr_list.Append(new assem::OperInstr(
+        leaq, new temp::TempList(dst), new temp::TempList(reg_manager->StackPointer()), nullptr));
     }
     else{
       instr_list.Append(new assem::MoveInstr(
@@ -189,7 +190,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::TempList *dst = new temp::TempList(temp);
     if(left==reg_manager->FramePointer()){
       temp::TempList *src = new temp::TempList({reg_manager->StackPointer(), right});
-      assem::MoveInstr *instr1 = new assem::MoveInstr("leaq " + std::string(fs.data()) + "(`s0), `d0", dst, src);
+      assem::OperInstr *instr1 = new assem::OperInstr("leaq " + std::string(fs.data()) + "(`s0), `d0", dst, src, nullptr);
       assem::OperInstr *instr2 =
           new assem::OperInstr("addq `s1, `d0", dst, src, nullptr);
       instr_list.Append(instr1);
@@ -287,12 +288,12 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     if(temp1==reg_manager->FramePointer()){
       // FIXME
       std::string movq = "movq (" + std::string(fs.data()) + "+" + std::to_string(i) + ")(`s0), `d0";
-      instr_list.Append(new assem::MoveInstr(movq, new temp::TempList(temp), new temp::TempList(reg_manager->StackPointer())));
+      instr_list.Append(new assem::OperInstr(movq, new temp::TempList(temp), new temp::TempList(reg_manager->StackPointer()), nullptr));
     }
     else{
       std::string movq = "movq " + std::to_string(i) + "(`s0), `d0";
-      instr_list.Append(new assem::MoveInstr(movq, new temp::TempList(temp),
-                                           new temp::TempList(temp1)));
+      instr_list.Append(new assem::OperInstr(movq, new temp::TempList(temp),
+                                           new temp::TempList(temp1), nullptr));
     }
   } else if (typeid(*exp_) == typeid(BinopExp) &&
              ((BinopExp *)exp_)->op_ == BinOp::PLUS_OP &&
@@ -303,18 +304,19 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     if(temp1==reg_manager->FramePointer()){
       // FIXME
       std::string movq = "movq (" + std::string(fs.data()) + "+" + std::to_string(i) + ")(`s0), `d0";
-      instr_list.Append(new assem::MoveInstr(movq, new temp::TempList(temp), new temp::TempList(reg_manager->StackPointer())));
+      instr_list.Append(new assem::OperInstr(movq, new temp::TempList(temp), new temp::TempList(reg_manager->StackPointer()), nullptr));
     }
     else{
       std::string movq = "movq " + std::to_string(i) + "(`s0), `d0";
-      instr_list.Append(new assem::MoveInstr(movq, new temp::TempList(temp),
-                                           new temp::TempList(temp1)));
+      instr_list.Append(new assem::OperInstr(movq, new temp::TempList(temp),
+                                           new temp::TempList(temp1), nullptr));
     }
   } else {
     temp::Temp *temp1 = exp_->Munch(instr_list, fs);
-    instr_list.Append(new assem::MoveInstr("movq (`s0), `d0",
+    instr_list.Append(new assem::OperInstr("movq (`s0), `d0",
                                            new temp::TempList(temp),
-                                           new temp::TempList(temp1)));
+                                           new temp::TempList(temp1),
+                                           nullptr));
   }
   return temp;
 }
@@ -336,7 +338,7 @@ temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *temp = temp::TempFactory::NewTemp();
   std::string leaq = "leaq " + name_->Name() + "(%rip), `d0";
   instr_list.Append(
-      new assem::MoveInstr(leaq, new temp::TempList(temp), nullptr));
+      new assem::OperInstr(leaq, new temp::TempList(temp), nullptr, nullptr));
   return temp;
 }
 
@@ -345,7 +347,7 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *temp = temp::TempFactory::NewTemp();
   std::string str = "movq $" + std::to_string(consti_) + ", `d0";
   instr_list.Append(
-      new assem::MoveInstr(str, new temp::TempList(temp), nullptr));
+      new assem::OperInstr(str, new temp::TempList(temp), nullptr, nullptr));
   return temp;
 }
 
@@ -368,7 +370,7 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         temp::Temp *argReg = argRegs->NthTemp(i);
         temp::Temp *formal = reg_manager->StackPointer();
         std::string leaq = "leaq " + std::string(fs.data()) + "(`s0), `d0";
-        instr_list.Append(new assem::MoveInstr(leaq, new temp::TempList(argReg), new temp::TempList(formal)));
+        instr_list.Append(new assem::OperInstr(leaq, new temp::TempList(argReg), new temp::TempList(formal), nullptr));
       }
       else{
         temp::Temp *argReg = argRegs->NthTemp(i);
