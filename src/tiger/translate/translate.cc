@@ -13,6 +13,8 @@
 extern frame::Frags *frags;
 extern frame::RegManager *reg_manager;
 
+static int loop_variable = 0;
+
 namespace tr {
 
 tr::Access *Access::AllocLocal(Level *level, bool escape) {
@@ -577,9 +579,11 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  loop_variable++;
   absyn::DecList *decList = new absyn::DecList();
   absyn::ExpList *expList = new absyn::ExpList();
-  sym::Symbol *symbol = sym::Symbol::UniqueSymbol("reserved@");
+  std::string loop_str = "loop_variable_" + std::to_string(loop_variable);
+  sym::Symbol *symbol = sym::Symbol::UniqueSymbol(loop_str);
   absyn::VarDec *loopVarDec = new VarDec(0, var_, nullptr, lo_);
   loopVarDec->escape_ = escape_;
   decList->Prepend(new VarDec(0, symbol, nullptr, hi_));
