@@ -6,7 +6,7 @@
 #include "tiger/parse/parser.h"
 #include "tiger/translate/translate.h"
 #include "tiger/semant/semant.h"
-
+#include <iostream>
 frame::RegManager *reg_manager;
 frame::Frags *frags;
 

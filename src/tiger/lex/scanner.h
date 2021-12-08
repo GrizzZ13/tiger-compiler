@@ -50,6 +50,7 @@ private:
   std::string string_buf_;
   int char_pos_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
+  std::string string_tmp_;
 
   /**
    * NOTE: do not change all the funtion signature below, which is used by
