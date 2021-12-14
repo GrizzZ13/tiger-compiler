@@ -41,12 +41,12 @@ public:
   inline void Log(T, Targs...) noexcept {}
 };
 
-// #define TigerLog Logger(stdout).Log
-
-#ifdef NDEBUG
-#define TigerLog NullLogger().Log
-#else
 #define TigerLog Logger(stdout).Log
-#endif
+
+// #ifdef NDEBUG
+// #define TigerLog NullLogger().Log
+// #else
+// #define TigerLog Logger(stdout).Log
+// #endif
 
 #endif // TIGER_COMPILER_LOGGER_H

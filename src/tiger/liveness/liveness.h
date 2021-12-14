@@ -6,6 +6,7 @@
 #include "tiger/frame/temp.h"
 #include "tiger/liveness/flowgraph.h"
 #include "tiger/util/graph.h"
+#include <map>
 
 namespace live {
 
@@ -43,6 +44,10 @@ struct LiveGraph {
 
   LiveGraph(IGraphPtr interf_graph, MoveList *moves)
       : interf_graph(interf_graph), moves(moves) {}
+  LiveGraph(){
+    interf_graph = nullptr;
+    moves = nullptr;
+  }
 };
 
 class LiveGraphFactory {
@@ -55,6 +60,7 @@ public:
   void Liveness();
   LiveGraph GetLiveGraph() { return live_graph_; }
   tab::Table<temp::Temp, INode> *GetTempNodeMap() { return temp_node_map_; }
+  std::map<INodePtr, double> GetWeight() { return weight; }
 
 private:
   fg::FGraphPtr flowgraph_;
@@ -63,6 +69,7 @@ private:
   std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> in_;
   std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> out_;
   tab::Table<temp::Temp, INode> *temp_node_map_;
+  std::map<INodePtr, double> weight;
 
   void LiveMap();
   void InterfGraph();

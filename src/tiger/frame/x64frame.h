@@ -84,6 +84,7 @@ public:
   temp::TempList* returnSink;
 
 public:
+  static const int K = 15;
   X64RegManager() {
     rsp_str = "%rsp";
     rbp_str = "%rbp";
@@ -133,7 +134,26 @@ public:
     temp::Map::Name()->Enter(r14, &r14_str);
     temp::Map::Name()->Enter(r15, &r15_str);
     temp::Map::Name()->Enter(rbx, &rbx_str);
+    
+    temp_map_->Enter(rsp, &rsp_str);
+    temp_map_->Enter(rbp, &rbp_str);
+    temp_map_->Enter(rax, &rax_str);
+    temp_map_->Enter(rdi, &rdi_str);
+    temp_map_->Enter(rsi, &rsi_str);
+    temp_map_->Enter(rdx, &rdx_str);
+    temp_map_->Enter(rcx, &rcx_str);
+    temp_map_->Enter(r8,  &r8_str);
+    temp_map_->Enter(r9,  &r9_str);
+    temp_map_->Enter(r10, &r10_str);
+    temp_map_->Enter(r11, &r11_str);
+    temp_map_->Enter(r12, &r12_str);
+    temp_map_->Enter(r13, &r13_str);
+    temp_map_->Enter(r14, &r14_str);
+    temp_map_->Enter(r15, &r15_str);
+    temp_map_->Enter(rbx, &rbx_str);
   }
+
+  bool IsMachineRegister(temp::Temp *temp);
 
   /**
    * Get general-purpose registers except RSI

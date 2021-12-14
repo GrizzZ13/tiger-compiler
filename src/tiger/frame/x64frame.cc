@@ -110,6 +110,11 @@ temp::Temp* X64Frame::FramePointer() const {
   return reg_manager->FramePointer();
 }
 
+bool X64RegManager::IsMachineRegister(temp::Temp *temp){
+  std::vector<temp::Temp*> vec({rsp, rbp, rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11, r12, r13, r14, r15, rbx});
+  return std::find(vec.begin(), vec.end(), temp) != vec.end();
+}
+
 temp::TempList *X64RegManager::Registers() {
   if(regs==nullptr){
     regs = new temp::TempList({rbp, rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11, r12, r13, r14, r15, rbx});

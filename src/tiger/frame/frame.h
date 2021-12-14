@@ -16,6 +16,8 @@ class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
 
+  bool virtual IsMachineRegister(temp::Temp *temp) = 0;
+
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
 
   /**
