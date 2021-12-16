@@ -2,6 +2,7 @@
 #define TIGER_COMPILER_LOGGER_H
 
 #include <cstdarg>
+#define NDEBUG
 
 #include "tiger/canon/canon.h"
 #include "tiger/codegen/codegen.h"
@@ -41,12 +42,10 @@ public:
   inline void Log(T, Targs...) noexcept {}
 };
 
+#ifdef NDEBUG
+#define TigerLog NullLogger().Log
+#else
 #define TigerLog Logger(stdout).Log
-
-// #ifdef NDEBUG
-// #define TigerLog NullLogger().Log
-// #else
-// #define TigerLog Logger(stdout).Log
-// #endif
+#endif
 
 #endif // TIGER_COMPILER_LOGGER_H

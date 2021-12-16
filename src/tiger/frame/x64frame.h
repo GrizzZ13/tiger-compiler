@@ -36,7 +36,8 @@ public:
   static Frame* NewFrame(temp::Label *name, std::list<bool>& escapes);
   temp::Temp* FramePointer() const override;
   tree::Stm* procEntryExit1(tree::Stm *stm) override;
-  assem::Proc* ProcEntryExit3(assem::InstrList *il) override;
+  assem::Instr* procEntryExit2() override;
+  assem::Proc* procEntryExit3(assem::InstrList *il) override;
   std::string GetLabel() override;
 };
 

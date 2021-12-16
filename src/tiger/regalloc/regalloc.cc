@@ -2,26 +2,99 @@
 
 #include "tiger/output/logger.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+std::vector<temp::Temp*> spilledTemp;
+std::set<temp::Temp*> newIntroducedTemp;
+assem::InstrList *debugList;
+std::map<assem::Instr*, temp::TempList*> liveout;
+
+void showSpilledTemp(FILE *out) {
+    fprintf(out, "================spilled temps================\n");
+    for(auto temp : spilledTemp) {
+        if(temp){
+            std::string name = *(temp::Map::Name()->Look(temp));
+            fprintf(out, "%s ", name.c_str());
+        }
+    }
+    fprintf(out, "\n==============================================\n");
+}
+
+void showNewTemp(FILE *out) {
+    fprintf(out, "===================new temps==================\n");
+    for(auto temp : newIntroducedTemp) {
+        if(temp){
+            std::string name = *(temp::Map::Name()->Look(temp));
+            fprintf(out, "%s ", name.c_str());
+        }
+    }
+    fprintf(out, "\n==============================================\n");
+}
+
+void showTempList(temp::TempList *tempList, FILE *out, std::set<temp::Temp*> target){
+    fprintf(out, "temps : \n");
+    bool flag = false;
+    if(tempList){
+        std::list<temp::Temp*> stdlist = tempList->GetList();
+        for(auto temp : stdlist) {
+            if(temp){
+                if(!flag && target.find(temp)!=target.end()){
+                    flag = true;
+                }
+                std::string name = *(temp::Map::Name()->Look(temp));
+                fprintf(out, "%s ", name.c_str());
+            }
+        }
+    }
+    if(flag) {
+        fprintf(out, "        <<<<<<<<\n\n");
+    }
+    else{
+        fprintf(out, "\n\n");
+    }
+}
+
+void showInstrAndTemp(FILE *out){
+    if(debugList){
+        std::list<assem::Instr*> stdlist = debugList->GetList();
+        for(auto ins : stdlist) {
+            ins->Print(out, temp::Map::Name());
+            temp::TempList *tl = liveout[ins];
+            fprintf(out, "live out ");
+            showTempList(tl, out, newIntroducedTemp);
+        }
+    }
+}
+
+void SHOWALL(){
+    showSpilledTemp(stdout);
+    showNewTemp(stdout);
+    showInstrAndTemp(stdout);
+}
+
+#endif
+
 extern frame::RegManager *reg_manager;
 
 namespace ra {
 /* TODO: Put your lab6 code here */
 void RegAllocator::RegAlloc() {
-    coloring = temp::Map::Empty();
-    fg::FlowGraphFactory fgf(instrList);
-    fgf.AssemFlowGraph();
-    fg::FGraphPtr fgPtr = fgf.GetFlowGraph();
-    live::LiveGraphFactory lgf(fgPtr);
-    lgf.Liveness();
-    liveGraph = lgf.GetLiveGraph();
+    coalescedMoves = new live::MoveList();
+    constrainedMoves = new live::MoveList();
+    frozenMoves = new live::MoveList();
+    worklistMoves = new live::MoveList();
+    activeMoves = new live::MoveList();
+
+    LivenessAnalysis();
+    Build();
     MakeWorklist();
-    weight = lgf.GetWeight();
 
     while(true){
         if(!simplifyWorklist.empty()) {
             Simplify();
         }
-        else if(!worklistMoves.GetList().empty()){
+        else if(!worklistMoves->GetList().empty()){
             Coalesce();
         }
         else if(!freezeWorklist.empty()) {
@@ -31,7 +104,7 @@ void RegAllocator::RegAlloc() {
             SelectSpill();
         }
 
-        if(simplifyWorklist.empty() && worklistMoves.GetList().empty() 
+        if(simplifyWorklist.empty() && worklistMoves->GetList().empty() 
         && freezeWorklist.empty() && spillWorklist.empty()){
             break;
         }
@@ -44,6 +117,27 @@ void RegAllocator::RegAlloc() {
     else{
         result = std::make_unique<ra::Result>(coloring, instrList);
     }
+}
+
+void RegAllocator::LivenessAnalysis() {
+    fg::FlowGraphFactory fgf(instrList);
+    fgf.AssemFlowGraph();
+    fg::FGraphPtr fgPtr = fgf.GetFlowGraph();
+    lgf = new live::LiveGraphFactory(fgPtr);
+    lgf->Liveness();
+    #ifdef DEBUG
+    debugList = instrList;
+    liveout = lgf->my_out;
+    SHOWALL();
+    #endif
+}
+
+void RegAllocator::Build() {
+    coloring = temp::Map::Empty();
+    liveGraph = lgf->GetLiveGraph();
+    worklistMoves = liveGraph.moves;
+    moveList = lgf->GetMoveListMap();
+    weight = lgf->GetWeight();
 }
 
 bool RegAllocator::Precolored(live::INodePtr inode) {
@@ -80,7 +174,10 @@ void RegAllocator::MakeWorklist() {
 }
 
 live::MoveList* RegAllocator::NodeMoves(live::INodePtr n) {
-    return moveList[n]->Intersect(activeMoves.Union(&worklistMoves));
+    if(moveList[n]==nullptr){
+        moveList[n] = new live::MoveList();
+    }
+    return moveList[n]->Intersect(activeMoves->Union(worklistMoves));
 }
 
 bool RegAllocator::MoveRelated(live::INodePtr inode){
@@ -93,7 +190,9 @@ std::set<live::INodePtr> RegAllocator::Adjacent(live::INodePtr inode){
     for(auto &n : selectedStack) {
         set.erase(n);
     }
-    set.erase(coalescedNodes.begin(), coalescedNodes.end());
+    for(auto &n : coalescedNodes) {
+        set.erase(n);
+    }
     return set;
 }
 
@@ -103,7 +202,9 @@ int RegAllocator::GetDegree(live::INodePtr inode) {
     for(auto &n : selectedStack) {
         set.erase(n);
     }
-    set.erase(coalescedNodes.begin(), coalescedNodes.end());
+    for(auto &n : coalescedNodes) {
+        set.erase(n);
+    }
     return set.size();
 }
 
@@ -127,10 +228,10 @@ void RegAllocator::EnableMoves(std::set<live::INodePtr> inodes) {
     for(auto &inode : inodes) {
         live::MoveList *nms = NodeMoves(inode);
         for(auto &m : nms->GetList()){
-            if(activeMoves.Contain(m.first, m.second)){
-                activeMoves.Delete(m.first, m.second);
-                if(!worklistMoves.Contain(m.first, m.second)){
-                    worklistMoves.Append(m.first, m.second);
+            if(activeMoves->Contain(m.first, m.second)){
+                activeMoves->Delete(m.first, m.second);
+                if(!worklistMoves->Contain(m.first, m.second)){
+                    worklistMoves->Append(m.first, m.second);
                 }
             }
         }
@@ -138,9 +239,9 @@ void RegAllocator::EnableMoves(std::set<live::INodePtr> inodes) {
 }
 
 void RegAllocator::Coalesce() {
-    auto pair = *(worklistMoves.GetList().begin());
-    live::INodePtr x = pair.first;
-    live::INodePtr y = pair.second;
+    auto pair = *(worklistMoves->GetList().begin());
+    live::INodePtr x = GetAlias(pair.first);
+    live::INodePtr y = GetAlias(pair.second);
     live::INodePtr u, v;
     if(Precolored(y)){
         u = y;
@@ -150,31 +251,31 @@ void RegAllocator::Coalesce() {
         u = x;
         v = y;
     }
-    worklistMoves.Delete(x, y);
+    worklistMoves->Delete(pair.first, pair.second);
     if(u==v){
-        if(!coalescedMoves.Contain(x, y)){
-            coalescedMoves.Append(x, y);
+        if(!coalescedMoves->Contain(pair.first, pair.second)){
+            coalescedMoves->Append(pair.first, pair.second);
         }
         AddWorklist(u);
     }
     else if(Precolored(v) || u->GoesTo(v)){
-        if(!constrainedMoves.Contain(x, y)){
-            constrainedMoves.Append(x, y);
+        if(!constrainedMoves->Contain(pair.first, pair.second)){
+            constrainedMoves->Append(pair.first, pair.second);
         }
         AddWorklist(u);
         AddWorklist(v);
     }
     else if( (Precolored(u) && AllOK(Adjacent(v), u)) || 
     (!Precolored(u) && Conservative(AdjUnion(u, v)))) {
-        if(!coalescedMoves.Contain(x, y)){
-            coalescedMoves.Append(x, y);
+        if(!coalescedMoves->Contain(pair.first, pair.second)){
+            coalescedMoves->Append(pair.first, pair.second);
         }
         Combine(u, v);
         AddWorklist(u);
     }
     else{
-        if(!activeMoves.Contain(x, y)){
-            activeMoves.Append(x, y);
+        if(!activeMoves->Contain(pair.first, pair.second)){
+            activeMoves->Append(pair.first, pair.second);
         }
     }
 }
@@ -216,7 +317,7 @@ bool RegAllocator::Conservative(std::set<live::INodePtr> set) {
 void RegAllocator::AddWorklist(live::INodePtr u) {
     if(!Precolored(u) && !MoveRelated(u) && GetDegree(u) < frame::X64RegManager::K){
         freezeWorklist.erase(u);
-        simplifyWorklist.erase(u);
+        simplifyWorklist.insert(u);
     }
 }
 
@@ -274,11 +375,11 @@ void RegAllocator::FreezeMoves(live::INodePtr u) {
         else{
             v = GetAlias(y);
         }
-        if(activeMoves.Contain(x, y)){
-            activeMoves.Delete(x, y);
+        if(activeMoves->Contain(x, y)){
+            activeMoves->Delete(x, y);
         }
-        if(!frozenMoves.Contain(x, y)){
-            frozenMoves.Append(x, y);
+        if(!frozenMoves->Contain(x, y)){
+            frozenMoves->Append(x, y);
         }
         if(NodeMoves(v)->GetList().empty() && GetDegree(v) < frame::X64RegManager::K){
             freezeWorklist.erase(v);
@@ -290,11 +391,17 @@ void RegAllocator::FreezeMoves(live::INodePtr u) {
 void RegAllocator::SelectSpill() {
     double benchmark = 0;
     live::INodePtr selected = nullptr;
-    for(auto &p : weight){
-        if(p.second >= benchmark){
-            selected = p.first;
-            benchmark = p.second;
+    for(auto &p : spillWorklist){
+        if(notSpill.find(p->NodeInfo())!=notSpill.end()){
+            continue;
         }
+        if(weight[p] >= benchmark){
+            selected = p;
+            benchmark = weight[p];
+        }
+    }
+    if(!selected){
+        selected = *(spillWorklist.begin());
     }
     spillWorklist.erase(selected);
     simplifyWorklist.insert(selected);
@@ -352,6 +459,10 @@ void RegAllocator::RewriteProgram() {
             temp::TempList *dst = tmp->Def();
             if(src && Contain(spilled, src) && dst && Contain(spilled, dst)){
                 temp::Temp *newTemp = temp::TempFactory::NewTemp();
+                #ifdef DEBUG
+                newIntroducedTemp.insert(newTemp);
+                #endif
+                notSpill.insert(newTemp);
                 tmp->Replace(spilled, newTemp);
                 std::string assem1 = "movq ("+frame->name_->Name()+"_framesize+"+std::to_string(frame->offset_)+")(`s0), `d0";
                 std::string assem2 = "movq `s0, ("+frame->name_->Name()+"_framesize+"+std::to_string(frame->offset_)+")(`s1)";
@@ -364,6 +475,10 @@ void RegAllocator::RewriteProgram() {
             }
             else if(src && Contain(spilled, src)){
                 temp::Temp *newTemp = temp::TempFactory::NewTemp();
+                #ifdef DEBUG
+                newIntroducedTemp.insert(newTemp);
+                #endif
+                notSpill.insert(newTemp);
                 tmp->Replace(spilled, newTemp);
                 std::string assem1 = "movq ("+frame->name_->Name()+"_framesize+"+std::to_string(frame->offset_)+")(`s0), `d0";
                 assem::Instr *instr1 = new assem::OperInstr(assem1, new temp::TempList(newTemp), new temp::TempList(reg_manager->StackPointer()), nullptr);
@@ -371,6 +486,10 @@ void RegAllocator::RewriteProgram() {
             }
             else if(dst && Contain(spilled, dst)){
                 temp::Temp *newTemp = temp::TempFactory::NewTemp();
+                #ifdef DEBUG
+                newIntroducedTemp.insert(newTemp);
+                #endif
+                notSpill.insert(newTemp);
                 tmp->Replace(spilled, newTemp);
                 std::string assem2 = "movq `s0, ("+frame->name_->Name()+"_framesize+"+std::to_string(frame->offset_)+")(`s1)";
                 assem::Instr *instr2 = new assem::OperInstr(assem2, nullptr, new temp::TempList({newTemp, reg_manager->StackPointer()}), nullptr);
@@ -380,9 +499,19 @@ void RegAllocator::RewriteProgram() {
             }
         }
     }
+    #ifdef DEBUG
+    spilledTemp.clear();
+    for(auto t : spilledNodes){
+        spilledTemp.push_back(t->NodeInfo());
+    }
+    #endif
     spilledNodes.clear();
     coloredNodes.clear();
     coalescedNodes.clear();
+    weight.clear();
+    node2reg.clear();
+    alias.clear();
+    moveList.clear();
 }
 
 } // namespace ra

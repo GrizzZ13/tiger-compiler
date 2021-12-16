@@ -73,7 +73,11 @@ tree::Stm* X64Frame::procEntryExit1(tree::Stm *body) {
   return result;
 }
 
-assem::Proc* X64Frame::ProcEntryExit3(assem::InstrList *instrList) {
+assem::Instr* X64Frame::procEntryExit2() {
+  return new assem::OperInstr("", nullptr, reg_manager->ReturnSink(), nullptr);
+}
+
+assem::Proc* X64Frame::procEntryExit3(assem::InstrList *instrList) {
   std::string prologue = name_->Name() + ":\n";
   prologue += ".set " + name_->Name() + "_framesize, " + std::to_string(-offset_) + "\n";
   prologue += "subq $" + std::to_string(-offset_) + ", %rsp\n";
@@ -144,7 +148,10 @@ temp::TempList *X64RegManager::CalleeSaves() {
 }
 
 temp::TempList *X64RegManager::ReturnSink() {
-  return nullptr;
+  if(returnSink==nullptr){
+    returnSink = new temp::TempList(rax);
+  }
+  return returnSink;
 }
 
 int X64RegManager::WordSize() {

@@ -707,7 +707,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       for(;param_it != funDec->params_->GetList().end();formal_it++, param_it++, access_it++){
         venv->Enter((*param_it)->name_, new env::VarEntry(*access_it, *formal_it));
       }
-      type::Ty *result_ty = tenv->Look(funDec->result_);
       tr::ExpAndTy *expAndTy = funDec->body_->Translate(venv, tenv, entry->level_, label, errormsg);
       venv->EndScope();
       tr::funcDec(expAndTy->exp_, entry->level_);

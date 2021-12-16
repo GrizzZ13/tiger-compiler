@@ -133,6 +133,7 @@ void LiveGraphFactory::LiveMap() {
       if(!Equal(out, out_->Look(nodePtr))) {
         done = false;
         out_->Enter(nodePtr, out);
+        my_out[nodePtr->NodeInfo()] = out;
       }
     }
   }
@@ -192,6 +193,14 @@ void LiveGraphFactory::InterfGraph() {
         INodePtr defNode = temp_node_map_->Look(def);
         INodePtr useNode = temp_node_map_->Look(use);
         live_graph_.moves->Append(useNode, defNode);
+        if(moveList[defNode]==nullptr){
+          moveList[defNode] = new MoveList();
+        }
+        if(moveList[useNode]==nullptr){
+          moveList[useNode] = new MoveList();
+        }
+        moveList[defNode]->Append(useNode, defNode);
+        moveList[useNode]->Append(useNode, defNode);
       }
 
       std::list<temp::Temp*> defList = defs->GetList();

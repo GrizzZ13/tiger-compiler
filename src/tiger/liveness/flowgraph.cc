@@ -1,5 +1,6 @@
 #include "tiger/liveness/flowgraph.h"
 
+extern frame::RegManager *reg_manager;
 namespace fg {
 
 void FlowGraphFactory::AssemFlowGraph() {
@@ -103,12 +104,34 @@ temp::TempList *LabelInstr::Def() const {
 
 temp::TempList *MoveInstr::Def() const {
   /* TODO: Put your lab6 code here */
-  return dst_;
+  if(dst_){
+    temp::TempList *ret = new temp::TempList();
+    for(auto temp : dst_->GetList()){
+      if(temp!=reg_manager->StackPointer()){
+        ret->Append(temp);
+      }
+    }
+    return ret;
+  }
+  else{
+    return nullptr;
+  }
 }
 
 temp::TempList *OperInstr::Def() const {
   /* TODO: Put your lab6 code here */
-  return dst_;
+  if(dst_){
+    temp::TempList *ret = new temp::TempList();
+    for(auto temp : dst_->GetList()){
+      if(temp!=reg_manager->StackPointer()){
+        ret->Append(temp);
+      }
+    }
+    return ret;
+  }
+  else{
+    return nullptr;
+  }
 }
 
 temp::TempList *LabelInstr::Use() const {
@@ -118,11 +141,33 @@ temp::TempList *LabelInstr::Use() const {
 
 temp::TempList *MoveInstr::Use() const {
   /* TODO: Put your lab6 code here */
-  return src_;
+  if(src_){
+    temp::TempList *ret = new temp::TempList();
+    for(auto temp : src_->GetList()){
+      if(temp!=reg_manager->StackPointer()){
+        ret->Append(temp);
+      }
+    }
+    return ret;
+  }
+  else{
+    return nullptr;
+  }
 }
 
 temp::TempList *OperInstr::Use() const {
   /* TODO: Put your lab6 code here */
-  return src_;
+  if(src_){
+    temp::TempList *ret = new temp::TempList();
+    for(auto temp : src_->GetList()){
+      if(temp!=reg_manager->StackPointer()){
+        ret->Append(temp);
+      }
+    }
+    return ret;
+  }
+  else{
+    return nullptr;
+  }
 }
 } // namespace assem

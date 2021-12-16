@@ -52,6 +52,8 @@ private:
   void EnableMoves(std::set<live::INodePtr> inodes);
   void AddWorklist(live::INodePtr inode);
   void Combine(live::INodePtr u, live::INodePtr v);
+  void Build();
+  void LivenessAnalysis();
   void RewriteProgram();
 
   int GetDegree(live::INodePtr inode);
@@ -73,16 +75,17 @@ private:
   std::unique_ptr<ra::Result> result;
   temp::Map *coloring;
   assem::InstrList *instrList;
+  live::LiveGraphFactory *lgf;
 
   std::map<live::INodePtr, double> weight;
   std::map<live::INodePtr, temp::Temp*> node2reg;
-  std::map<live::INodePtr, int> degree;
   std::map<live::INodePtr, live::INodePtr> alias;
   std::set<live::INodePtr> spillWorklist, freezeWorklist, simplifyWorklist;
   std::set<live::INodePtr> spilledNodes, coalescedNodes, coloredNodes;
   std::map<live::INodePtr, live::MoveList*> moveList;
   std::vector<live::INodePtr> selectedStack;
-  live::MoveList coalescedMoves, constrainedMoves, frozenMoves, worklistMoves, activeMoves;
+  std::set<temp::Temp*> notSpill;
+  live::MoveList *coalescedMoves, *constrainedMoves, *frozenMoves, *worklistMoves, *activeMoves;
 };
 
 } // namespace ra

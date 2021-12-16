@@ -15,13 +15,35 @@ namespace cg {
 
 void CodeGen::Codegen() {
   /* TODO: Put your lab5 code here */
+  std::vector<temp::Temp*> calleeRegs(reg_manager->CalleeSaves()->GetList().begin(), reg_manager->CalleeSaves()->GetList().end());
+  std::vector<temp::Temp*> tempRegs;
+  int size = calleeRegs.size();
+  for(int i=0;i<size;++i) {
+    tempRegs.push_back(temp::TempFactory::NewTemp());
+  }
+
   fs_ = frame_->name_->Name() + "_framesize";
   assem::InstrList *instr_list = new assem::InstrList();
   assem_instr_ = std::make_unique<AssemInstr>(instr_list);
   std::list<tree::Stm *> stmList = traces_->GetStmList()->GetList();
+  // callee save
+  for(int i=0;i<size;++i) {
+    instr_list->Append(new assem::MoveInstr(
+      "movq `s0, `d0",
+      new temp::TempList(tempRegs[i]),
+      new temp::TempList(calleeRegs[i])));
+  }
   for (auto &stm : stmList) {
     stm->Munch(*instr_list, fs_);
   }
+  // restore
+  for(int i=0;i<size;++i) {
+    instr_list->Append(new assem::MoveInstr(
+      "movq `s0, `d0",
+      new temp::TempList(calleeRegs[i]), 
+      new temp::TempList(tempRegs[i])));
+  }
+  instr_list->Append(frame_->procEntryExit2());
 }
 
 void AssemInstr::Print(FILE *out, temp::Map *map) const {
@@ -135,12 +157,6 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
           movq, nullptr, new temp::TempList({temp2, temp1}), nullptr));
       }
     }
-    // else if(typeid(*(memDst->exp_))==typeid(ConstExp)){
-    //   temp::Temp *temp1 = memDst->exp_->Munch(instr_list, fs);
-    //   temp::Temp *temp2 = src_->Munch(instr_list, fs);
-    //   instr_list.Append(new assem::MoveInstr("movq `s0, (`d0)", new
-    //   temp::TempList(temp1), new temp::TempList(temp2)));
-    // }
     else if (typeid(*src_) == typeid(MemExp)) {
       temp::Temp *srcTemp = ((MemExp *)src_)->exp_->Munch(instr_list, fs);
       temp::Temp *dstTemp = memDst->exp_->Munch(instr_list, fs);
@@ -352,6 +368,22 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
+
+  std::vector<temp::Temp*> callerRegs(reg_manager->CallerSaves()->GetList().begin(), reg_manager->CallerSaves()->GetList().end());
+  std::vector<temp::Temp*> tempRegs;
+  int callerSize = callerRegs.size();
+  for(int i=0;i<callerSize;++i){
+    tempRegs.push_back(temp::TempFactory::NewTemp());
+  }
+
+  // caller saves
+  for(int i = 0;i < callerSize;++i){
+    instr_list.Append(new assem::MoveInstr(
+      "movq `s0, `d0", 
+      new temp::TempList(tempRegs[i]), 
+      new temp::TempList(callerRegs[i])));
+  }
+
   /* TODO: Put your lab5 code here */
   temp::Temp *temp = temp::TempFactory::NewTemp();
   temp::TempList *argRegs = reg_manager->ArgRegs();
@@ -396,6 +428,13 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   instr_list.Append(
       new assem::MoveInstr("movq `s0, `d0", new temp::TempList(temp),
                            new temp::TempList(reg_manager->ReturnValue())));
+  // restore caller-saves
+  for(int i = 0;i < callerSize;++i){
+    instr_list.Append(new assem::MoveInstr(
+      "movq `s0, `d0", 
+      new temp::TempList(callerRegs[i]), 
+      new temp::TempList(tempRegs[i])));
+  }
   return temp;
 }
 

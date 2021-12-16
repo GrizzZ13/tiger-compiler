@@ -464,7 +464,6 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
       for(;param_it != funDec->params_->GetList().end();formal_it++, param_it++){
         venv->Enter((*param_it)->name_, new env::VarEntry(*formal_it));
       }
-      type::Ty *result_ty = tenv->Look(funDec->result_);
       type::Ty *ty = funDec->body_->SemAnalyze(venv, tenv, labelcount, errormsg);
       if(!ty->IsSameType(type::VoidTy::Instance())){
         errormsg->Error(funDec->body_->pos_, "procedure returns value");
