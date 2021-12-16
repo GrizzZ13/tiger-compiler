@@ -2,7 +2,7 @@
 
 #include "tiger/output/logger.h"
 
-#define DEBUG
+// #define DEBUG
 
 #ifdef DEBUG
 std::vector<temp::Temp*> spilledTemp;
