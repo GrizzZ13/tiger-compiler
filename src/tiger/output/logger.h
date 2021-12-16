@@ -2,7 +2,6 @@
 #define TIGER_COMPILER_LOGGER_H
 
 #include <cstdarg>
-#define NDEBUG
 
 #include "tiger/canon/canon.h"
 #include "tiger/codegen/codegen.h"

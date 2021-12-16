@@ -203,21 +203,30 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   if (op_ == tree::BinOp::PLUS_OP) {
     temp::Temp *left = left_->Munch(instr_list, fs);
     temp::Temp *right = right_->Munch(instr_list, fs);
-    temp::TempList *dst = new temp::TempList(temp);
     if(left==reg_manager->FramePointer()){
-      temp::TempList *src = new temp::TempList({reg_manager->StackPointer(), right});
-      assem::OperInstr *instr1 = new assem::OperInstr("leaq " + std::string(fs.data()) + "(`s0), `d0", dst, src, nullptr);
-      assem::OperInstr *instr2 =
-          new assem::OperInstr("addq `s1, `d0", dst, src, nullptr);
+      assem::OperInstr *instr1 = new assem::OperInstr(
+        "leaq " + std::string(fs.data()) + "(`s0), `d0", 
+        new temp::TempList(temp), 
+        new temp::TempList(reg_manager->StackPointer()), 
+        nullptr);
+      assem::OperInstr *instr2 = new assem::OperInstr(
+        "addq `s0, `d0", 
+        new temp::TempList(temp), 
+        new temp::TempList({right, temp}), nullptr);
       instr_list.Append(instr1);
       instr_list.Append(instr2);
       return temp;
     }
     else{
-      temp::TempList *src = new temp::TempList({left, right});
-      assem::MoveInstr *instr1 = new assem::MoveInstr("movq `s0, `d0", dst, src);
-      assem::OperInstr *instr2 =
-          new assem::OperInstr("addq `s1, `d0", dst, src, nullptr);
+      assem::MoveInstr *instr1 = new assem::MoveInstr(
+        "movq `s0, `d0", 
+        new temp::TempList(temp), 
+        new temp::TempList(left));
+      assem::OperInstr *instr2 = new assem::OperInstr(
+        "addq `s0, `d0", 
+        new temp::TempList(temp), 
+        new temp::TempList({right, temp}), 
+        nullptr);
       instr_list.Append(instr1);
       instr_list.Append(instr2);
       return temp;
@@ -225,67 +234,68 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   } else if (op_ == tree::BinOp::MINUS_OP) {
     temp::Temp *left = left_->Munch(instr_list, fs);
     temp::Temp *right = right_->Munch(instr_list, fs);
-    temp::TempList *dst = new temp::TempList(temp);
-    temp::TempList *src = new temp::TempList({left, right});
-    assem::MoveInstr *instr1 = new assem::MoveInstr("movq `s0, `d0", dst, src);
-    assem::OperInstr *instr2 =
-        new assem::OperInstr("subq `s1, `d0", dst, src, nullptr);
+    assem::MoveInstr *instr1 = new assem::MoveInstr(
+      "movq `s0, `d0", 
+      new temp::TempList(temp), 
+      new temp::TempList(left));
+    assem::OperInstr *instr2 = new assem::OperInstr(
+      "subq `s0, `d0", 
+      new temp::TempList(temp), 
+      new temp::TempList({right, temp}), nullptr);
     instr_list.Append(instr1);
     instr_list.Append(instr2);
     return temp;
   } else if (op_ == tree::BinOp::MUL_OP) {
     temp::Temp *left = left_->Munch(instr_list, fs);
     temp::Temp *right = right_->Munch(instr_list, fs);
-    temp::TempList *dst = new temp::TempList(temp);
-    temp::TempList *src = new temp::TempList({left, right});
-    // assem::MoveInstr *instr1 = new assem::MoveInstr("movq `s0, `d0", dst, src);
-    // assem::OperInstr *instr2 =
-    //     new assem::OperInstr("imulq `s1, `d0", dst, src, nullptr);
-    temp::Temp *storeRdx = temp::TempFactory::NewTemp();
-    assem::MoveInstr *instr1 =
-        new assem::MoveInstr("movq `s0, `d0", new temp::TempList(storeRdx),
-                             new temp::TempList(reg_manager->GetRDX()));
-    assem::MoveInstr *instr2 = new assem::MoveInstr(
-        "movq `s0, `d0", new temp::TempList(reg_manager->ReturnValue()), src);
-    assem::OperInstr *instr3 =
-        new assem::OperInstr("imul `s1", nullptr, src, nullptr);
-    assem::MoveInstr *instr4 = new assem::MoveInstr(
-        "movq `s0, `d0", dst, new temp::TempList(reg_manager->ReturnValue()));
-    assem::MoveInstr *instr5 = new assem::MoveInstr(
-        "movq `s0, `d0", new temp::TempList(reg_manager->GetRDX()),
-        new temp::TempList(storeRdx));
+
+    assem::MoveInstr *instr1 = new assem::MoveInstr(
+      "movq `s0, `d0", 
+      new temp::TempList(reg_manager->ReturnValue()), 
+      new temp::TempList(left));
+    assem::OperInstr *instr2 = new assem::OperInstr(
+      "imul `s0", 
+      new temp::TempList({reg_manager->GetRDX(), reg_manager->ReturnValue()}), 
+      new temp::TempList({right, reg_manager->ReturnValue()}), 
+      nullptr);
+    assem::MoveInstr *instr3 = new assem::MoveInstr(
+      "movq `s0, `d0", 
+      new temp::TempList(temp), 
+      new temp::TempList(reg_manager->ReturnValue()));
+
     instr_list.Append(instr1);
     instr_list.Append(instr2);
     instr_list.Append(instr3);
-    instr_list.Append(instr4);
-    instr_list.Append(instr5);
+
     return temp;
   } else if (op_ == tree::BinOp::DIV_OP) {
     temp::Temp *left = left_->Munch(instr_list, fs);
     temp::Temp *right = right_->Munch(instr_list, fs);
-    temp::TempList *dst = new temp::TempList(temp);
-    temp::TempList *src = new temp::TempList({left, right});
-    temp::Temp *storeRdx = temp::TempFactory::NewTemp();
-    assem::MoveInstr *instr1 =
-        new assem::MoveInstr("movq `s0, `d0", new temp::TempList(storeRdx),
-                             new temp::TempList(reg_manager->GetRDX()));
-    assem::MoveInstr *instr2 = new assem::MoveInstr(
-        "movq `s0, `d0", new temp::TempList(reg_manager->ReturnValue()), src);
-    assem::OperInstr *instr3 =
-        new assem::OperInstr("cqto", nullptr, nullptr, nullptr);
-    assem::OperInstr *instr4 =
-        new assem::OperInstr("idivq `s1", nullptr, src, nullptr);
-    assem::MoveInstr *instr5 = new assem::MoveInstr(
-        "movq `s0, `d0", dst, new temp::TempList(reg_manager->ReturnValue()));
-    assem::MoveInstr *instr6 = new assem::MoveInstr(
-        "movq `s0, `d0", new temp::TempList(reg_manager->GetRDX()),
-        new temp::TempList(storeRdx));
+    
+    assem::MoveInstr *instr1 = new assem::MoveInstr(
+        "movq `s0, `d0", 
+        new temp::TempList(reg_manager->ReturnValue()), 
+        new temp::TempList(left));
+    assem::OperInstr *instr2 = new assem::OperInstr(
+        "cqto", 
+        new temp::TempList({reg_manager->GetRDX(), reg_manager->ReturnValue()}), 
+        new temp::TempList(reg_manager->ReturnValue()), 
+        nullptr);
+    assem::OperInstr *instr3 = new assem::OperInstr(
+        "idivq `s0", 
+        new temp::TempList({reg_manager->GetRDX(), reg_manager->ReturnValue()}), 
+        new temp::TempList({right, reg_manager->ReturnValue()}), 
+        nullptr);
+    assem::MoveInstr *instr4 = new assem::MoveInstr(
+        "movq `s0, `d0", 
+        new temp::TempList(temp), 
+        new temp::TempList(reg_manager->ReturnValue()));
+
     instr_list.Append(instr1);
     instr_list.Append(instr2);
     instr_list.Append(instr3);
     instr_list.Append(instr4);
-    instr_list.Append(instr5);
-    instr_list.Append(instr6);
+
     return temp;
   } else {
     return temp;

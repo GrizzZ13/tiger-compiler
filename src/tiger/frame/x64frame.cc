@@ -135,7 +135,7 @@ temp::TempList *X64RegManager::ArgRegs() {
 
 temp::TempList *X64RegManager::CallerSaves() {
   if(callerSaves==nullptr){
-    callerSaves = new temp::TempList({r10, r11});
+    callerSaves = new temp::TempList({rax, rdi, rsi, rcx, r8, r9, r10, r11});
   }
   return callerSaves;
 }
