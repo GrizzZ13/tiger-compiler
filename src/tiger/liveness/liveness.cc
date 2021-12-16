@@ -227,30 +227,32 @@ void LiveGraphFactory::InterfGraph() {
     }
   }
   // weight to select spill node
-  std::list<fg::FNodePtr> fnpl = flowgraph_->Nodes()->GetList();
-  for(auto &fnp : fnpl){
-    if(fnp->NodeInfo()->Def()!=nullptr){
-      std::list<temp::Temp*> tempList = fnp->NodeInfo()->Def()->GetList();
-      for(auto &temp : tempList){
-        INodePtr inode = temp_node_map_->Look(temp);
-        weight[inode] = weight[inode] + 1.0;
-      }
-    }
-    if(fnp->NodeInfo()->Use()!=nullptr){
-      std::list<temp::Temp*> tempList = fnp->NodeInfo()->Use()->GetList();
-      for(auto &temp : tempList){
-        INodePtr inode = temp_node_map_->Look(temp);
-        weight[inode] = weight[inode] + 1.0;
-      }
-    }
-  }
+  // std::list<fg::FNodePtr> fnpl = flowgraph_->Nodes()->GetList();
+  // for(auto &fnp : fnpl){
+  //   if(fnp->NodeInfo()->Def()!=nullptr){
+  //     std::list<temp::Temp*> tempList = fnp->NodeInfo()->Def()->GetList();
+  //     for(auto &temp : tempList){
+  //       INodePtr inode = temp_node_map_->Look(temp);
+  //       weight[inode] = weight[inode] + 1.0;
+  //     }
+  //   }
+  //   if(fnp->NodeInfo()->Use()!=nullptr){
+  //     std::list<temp::Temp*> tempList = fnp->NodeInfo()->Use()->GetList();
+  //     for(auto &temp : tempList){
+  //       INodePtr inode = temp_node_map_->Look(temp);
+  //       weight[inode] = weight[inode] + 1.0;
+  //     }
+  //   }
+  // }
   std::list<INodePtr> inpl = live_graph_.interf_graph->Nodes()->GetList();
   for(auto &inp : inpl) {
-    if(reg_manager->IsMachineRegister(inp->NodeInfo())){
-      continue;
-    }
     INodePtr inode = temp_node_map_->Look(inp->NodeInfo());
-    weight[inode] = weight[inode] / inp->InDegree();
+    if(reg_manager->IsMachineRegister(inp->NodeInfo())){
+      weight[inode] = 0;
+    }
+    else{
+      weight[inode] = inp->Degree();
+    }
   }
 }
 
