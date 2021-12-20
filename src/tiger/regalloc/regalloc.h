@@ -55,6 +55,7 @@ private:
   void Build();
   void LivenessAnalysis();
   void RewriteProgram();
+  void MergeVertices();
 
   int GetDegree(live::INodePtr inode);
   bool OK(live::INodePtr t, live::INodePtr u);

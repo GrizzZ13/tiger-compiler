@@ -115,6 +115,7 @@ void RegAllocator::RegAlloc() {
         RegAlloc();
     }
     else{
+        MergeVertices();
         result = std::make_unique<ra::Result>(coloring, instrList);
     }
 }
@@ -446,6 +447,21 @@ bool RegAllocator::Contain(temp::Temp *temp, temp::TempList *tempList) {
         }
     }
     return false;
+}
+
+void RegAllocator::MergeVertices(){
+    assem::InstrList *newList = new assem::InstrList();
+    for(auto itr = instrList->GetList().begin();itr!=instrList->GetList().end();++itr){
+        assem::Instr *ins = *(itr);
+        if(typeid(*ins)==typeid(assem::MoveInstr)){
+            assem::MoveInstr *mvins = (assem::MoveInstr*)ins;
+            if(coloring->Look(mvins->src_->NthTemp(0))==coloring->Look(mvins->dst_->NthTemp(0))){
+                continue;
+            }
+        }
+        newList->Append(ins);
+    }
+    instrList = newList;
 }
 
 void RegAllocator::RewriteProgram() {
