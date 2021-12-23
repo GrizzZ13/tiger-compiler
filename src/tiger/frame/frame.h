@@ -16,6 +16,8 @@ class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
 
+  bool virtual IsMachineRegister(temp::Temp *temp) = 0;
+
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
 
   /**
@@ -63,6 +65,8 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  [[nodiscard]] virtual temp::Temp *GetRDX() = 0;
+
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;
@@ -70,14 +74,36 @@ protected:
 
 class Access {
 public:
+  bool inframe_;
+
+public:
   /* TODO: Put your lab5 code here */
   
+  Access(bool inframe):inframe_(inframe) {}
   virtual ~Access() = default;
+  virtual tree::Exp* ToExp(tree::Exp *framePtr) const = 0;
   
 };
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  std::list<frame::Access*> formals_;
+  std::list<frame::Access*> locals_; 
+  temp::Label *name_;
+  tree::StmList *viewShift_;
+  int offset_;
+
+public:
+  Frame();
+  virtual ~Frame();
+  virtual Access* allocLocal(bool escape) = 0;
+  virtual temp::Temp* FramePointer() const = 0;
+  const std::list<frame::Access*> &GetFormals() {return formals_;}
+  virtual tree::Stm* procEntryExit1(tree::Stm *stm) = 0;
+  virtual assem::Instr* procEntryExit2() = 0;
+  virtual assem::Proc* procEntryExit3(assem::InstrList *il) = 0;
+  virtual std::string GetLabel() = 0;
 };
 
 /**
